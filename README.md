@@ -111,6 +111,4 @@ Si prefieres ejecutar cada servicio por separado:
 
 ---
 
-## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT.
