@@ -1,3 +1,4 @@
+// src/router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -6,35 +7,34 @@ const router = createRouter({
     {
       path: '/login',
       name: 'Login',
-      component: () => import('../views/LoginView.vue') // Apuntamos a la vista de Login que crearemos
+      component: () => import('../views/LoginView.vue')
     },
     {
       path: '/',
-      name: 'Dashboard',
-      component: () => import('../views/DashboardLayout.vue'), // Apuntamos al layout del dashboard
-      meta: { requiresAuth: true } // Marcamos esta ruta como protegida
+      component: () => import('../views/DashboardLayout.vue'), // El componente padre
+      meta: { requiresAuth: true },
+      children: [ // <-- Rutas que se renderizan dentro de DashboardLayout
+        {
+          path: '', // La ruta raíz ('/')
+          name: 'DashboardHome',
+          component: () => import('../views/DashboardHomeView.vue')
+        },
+        // Aquí añadiremos /reportes, /configuracion, etc. en el futuro
+      ]
     },
-    // Redireccionar cualquier ruta no encontrada
-    {
-      path: '/:catchAll(.*)',
-      redirect: '/'
-    }
+    { path: '/:catchAll(.*)', redirect: '/' }
   ]
 })
 
-// "Guardia de Navegación": Se ejecuta antes de cada cambio de ruta
+// ...el guardia de navegación (beforeEach) se mantiene igual...
 router.beforeEach((to, from, next) => {
-  // Simulamos la autenticación revisando si existe un "token"
   const isAuthenticated = localStorage.getItem('userToken');
-
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login'); // Si la ruta requiere auth y no hay token, va al login.
-  }
-  else if (to.name === 'Login' && isAuthenticated) {
-    next('/'); // Si ya está autenticado e intenta ir al login, va al dashboard.
-  }
-  else {
-    next(); // En cualquier otro caso, permite el acceso.
+    next('/login');
+  } else if (to.name === 'Login' && isAuthenticated) {
+    next('/');
+  } else {
+    next();
   }
 });
 
