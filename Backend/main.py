@@ -1,17 +1,21 @@
 # backend/main.py
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import motor.motor_asyncio
+from datetime import datetime
 
-# 1. Crear una instancia de FastAPI
+# --- CONFIGURACIÓN DE LA BASE DE DATOS ---
+MONGO_CONNECTION_STRING = "mongodb+srv://vjestayvaldivia_db_user:KSMblitz3605.@testcluster.fxccig4.mongodb.net/?retryWrites=true&w=majority&appName=TestCluster" 
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_CONNECTION_STRING)
+db = client.SampleDatabase
+sensor_collection = db.Sensor_Data
+
+
+# --- INICIO DE LA APLICACIÓN FASTAPI ---
 app = FastAPI()
 
-# 2. Configurar CORS (MUY IMPORTANTE)
-# Esto permite que tu frontend (ej. en localhost:5173) pueda hacer peticiones a tu backend (en localhost:8000)
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
+# Configuración de CORS
+origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -20,21 +24,53 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Definir un endpoint (una "ruta") para las métricas
-@app.get("/api/metrics/latest")
-def get_latest_metrics():
-    """
-    Este endpoint devuelve los valores más recientes de las métricas principales.
-    Por ahora, son datos de ejemplo. En el futuro, los leeremos de MongoDB.
-    """
-    return {
-        "temperatura": { "value": 14.2, "unit": "C°", "changeText": "-2.2 C° bajo lo esperado", "isPositive": True },
-        "oxigeno_disuelto": { "value": 0.25, "unit": "PPM", "changeText": "-$2,201", "isPositive": False },
-        "salinidad": { "value": 45, "unit": "", "changeText": "+5.39 sobre lo esperado", "isPositive": False },
-        "ph": { "value": 7.0, "unit": "", "changeText": "-1.22 bajo lo esperado", "isPositive": True },
-    }
 
-# Endpoint raíz para verificar que el servidor funciona
+# --- ENDPOINTS DE LA API ---
+
 @app.get("/")
 def read_root():
-    return {"status": "El servidor FastAPI está funcionando"}
+    return {"status": "Servidor FastAPI conectado a MongoDB Atlas"}
+
+@app.get("/api/metrics/latest")
+async def get_latest_metrics():
+    """
+    Busca el documento más reciente y lo transforma al formato que el frontend necesita,
+    ahora incluyendo Nitrógeno y Electroconductividad.
+    """
+    latest_reading = await sensor_collection.find_one({}, sort=[("ReadTime", -1)])
+
+    if latest_reading:
+        # Lógica de transformación actualizada
+        transformed_data = {
+            "temperatura": { 
+                "value": latest_reading.get("Temperature", 0),
+                "unit": "C°", 
+                "changeText": "Leído desde la DB", 
+                "isPositive": True 
+            },
+            "ph": { 
+                "value": latest_reading.get("pH_Value", 0),
+                "unit": "",
+                "changeText": "Leído desde la DB",
+                "isPositive": True 
+            },
+            
+            # --- CAMBIOS AQUÍ ---
+            # Reemplazamos "oxigeno_disuelto" por "nitrogeno"
+            "nitrogeno": { 
+                "value": latest_reading.get("Nitrogen", 0), 
+                "unit": "mg/kg", # Unidad común para nitrógeno en suelo
+                "changeText": "Nivel en suelo", 
+                "isPositive": True 
+            },
+            # Reemplazamos "salinidad" por "electroconductividad"
+            "electroconductividad": { 
+                "value": latest_reading.get("EC", 0), 
+                "unit": "dS/m", # Unidad común para EC
+                "changeText": "Conductividad", 
+                "isPositive": True 
+            },
+        }
+        return transformed_data
+    else:
+        raise HTTPException(status_code=404, detail="No se encontraron lecturas de sensores")
