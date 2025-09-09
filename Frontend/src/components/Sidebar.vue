@@ -28,10 +28,6 @@ const toggleSidebar = inject<() => void>('toggleSidebar');
           <i class="pi pi-chart-bar"></i>
           <span class="nav-text">Reportes</span>
         </li>
-        <li class="nav-item">
-          <i class="pi pi-cog"></i>
-          <span class="nav-text">Configuración</span>
-        </li>
       </ul>
     </nav>
   </aside>
