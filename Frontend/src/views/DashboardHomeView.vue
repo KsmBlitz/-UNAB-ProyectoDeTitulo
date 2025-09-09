@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import MetricCard from '@/components/MetricCard.vue';
 import WaterLevelChart from '@/components/WaterLevelChart.vue';
+import ReservoirCapacityChart from '@/components/ReservoirCapacityChart.vue'; // <-- 1. Importar
 
 defineOptions({
   name: 'DashboardHomeView'
@@ -18,7 +19,8 @@ defineOptions({
 
     <div class="main-widgets-grid">
       <WaterLevelChart />
-      </div>
+      <ReservoirCapacityChart />
+    </div>
   </div>
 </template>
 
@@ -33,10 +35,20 @@ defineOptions({
   gap: 1.5rem;
 }
 
+/* 3. Estilos para la grilla de los gráficos */
 .main-widgets-grid {
   margin-top: 2rem;
   display: grid;
-  grid-template-columns: 1fr; /* Por ahora una sola columna */
+  /* El gráfico de línea ocupará el doble de espacio que el circular */
+  grid-template-columns: 2fr 1fr;
   gap: 1.5rem;
+  align-items: stretch; /* Asegura que ambos widgets tengan la misma altura */
+}
+
+/* Para pantallas más pequeñas, los gráficos se apilan */
+@media (max-width: 992px) {
+  .main-widgets-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

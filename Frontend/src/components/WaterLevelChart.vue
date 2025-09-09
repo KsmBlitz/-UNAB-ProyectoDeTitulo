@@ -77,14 +77,19 @@ const chartOptions = {
     </div>
   </div>
 </template>
+
 <style scoped>
 .chart-container {
   background-color: #ffffff;
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  /* Añadido: Asegura que el contenedor principal no se estire indefinidamente */
   min-width: 0;
+
+  /* --- SOLUCIÓN --- */
+  height: 450px; /* Altura fija para la tarjeta */
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-header {
@@ -106,13 +111,9 @@ const chartOptions = {
 }
 
 .chart-wrapper {
-  height: 350px;
-  overflow: hidden;
-}
-
-.chart-canvas-container {
   position: relative;
-  height: 100%;
-  width: 100%;
+  /* Hacemos que el área del gráfico crezca para ocupar el espacio restante */
+  flex-grow: 1;
+  min-height: 0; /* Evita problemas de encogimiento en flexbox */
 }
 </style>
