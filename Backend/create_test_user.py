@@ -8,8 +8,8 @@ MONGO_CONNECTION_STRING = "mongodb+srv://vjestayvaldivia_db_user:KSMblitz3605.@t
 DATABASE_NAME = "SampleDatabase"
 
 # Usuario de prueba que vamos a crear
-TEST_USER_EMAIL = "admin@embalses.cl"
-TEST_USER_PASSWORD = "password" # La contraseña en texto plano
+TEST_USER_EMAIL = "operario@embalses.cl"
+TEST_USER_PASSWORD = "password"
 
 # --- LÓGICA ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -31,11 +31,12 @@ async def create_user():
     # Hashear la contraseña y crear el documento de usuario
     hashed_password = get_password_hash(TEST_USER_PASSWORD)
     user_document = {
-        "email": TEST_USER_EMAIL,
-        "hashed_password": hashed_password,
-        "full_name": "Administrador Principal",
-        "disabled": False
-    }
+    "email": TEST_USER_EMAIL,
+    "hashed_password": hashed_password,
+    "full_name": "Usuario Operario",
+    "disabled": False,
+    "role": "operario" # <-- Cambia el rol aquí
+}
 
     # Insertar el usuario en la colección 'users'
     result = await users_collection.insert_one(user_document)

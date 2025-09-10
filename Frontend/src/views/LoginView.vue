@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { jwtDecode } from 'jwt-decode'; // <-- Importar jwt-decode
+import { authStore } from '@/auth/store'; // <-- Importar nuestro store
+
+defineOptions({
+  name: 'LoginView'
+});
 
 const email = ref('');
 const password = ref('');
-const errorMessage = ref(''); // Variable para mostrar errores al usuario
+const errorMessage = ref('');
 const router = useRouter();
 
 const handleLogin = async () => {
-  errorMessage.value = ''; // Limpia errores previos
+  errorMessage.value = '';
 
-  // Preparamos los datos para el formato que espera OAuth2
   const formData = new URLSearchParams();
   formData.append('username', email.value);
   formData.append('password', password.value);
@@ -23,17 +28,23 @@ const handleLogin = async () => {
     });
 
     if (!response.ok) {
-      // Si el status no es 2xx, la autenticación falló
       const errorData = await response.json();
       throw new Error(errorData.detail || 'Error de autenticación');
     }
 
     const data = await response.json();
-
-    // Guardamos el token REAL que nos envió el backend
     localStorage.setItem('userToken', data.access_token);
 
-    // Redirigimos al dashboard
+    // --- NUEVA LÓGICA AQUÍ ---
+    // Decodificamos el token para obtener el email y el rol
+    const decodedToken: { sub: string; role: string } = jwtDecode(data.access_token);
+
+    // Guardamos la información en nuestro store
+    authStore.user = {
+      email: decodedToken.sub,
+      role: decodedToken.role
+    };
+
     router.push('/');
 
   } catch (error: unknown) {
@@ -42,7 +53,7 @@ const handleLogin = async () => {
     } else {
       errorMessage.value = 'No se pudo conectar con el servidor.';
     }
-    password.value = ''; // Limpiamos la contraseña en caso de error
+    password.value = '';
   }
 };
 </script>

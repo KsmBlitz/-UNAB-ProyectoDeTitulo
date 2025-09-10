@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { inject } from 'vue'
 import type { Ref } from 'vue'
-import { RouterLink } from 'vue-router' // <-- Importante
+import { RouterLink } from 'vue-router'
+import { authStore } from '@/auth/store'; // <-- Importar nuestro store
 
 defineOptions({
   name: 'AppSidebar'
-})
+});
 
 const isSidebarExpanded = inject<Ref<boolean>>('isSidebarExpanded');
 const toggleSidebar = inject<() => void>('toggleSidebar');
@@ -17,6 +18,7 @@ const toggleSidebar = inject<() => void>('toggleSidebar');
       <i class="pi pi-bars menu-toggle" @click="toggleSidebar"></i>
       <span class="logo-text">Embalses IoT</span>
     </header>
+
     <nav class="navigation">
       <ul>
         <RouterLink to="/" custom v-slot="{ navigate, isActive }">
@@ -25,6 +27,7 @@ const toggleSidebar = inject<() => void>('toggleSidebar');
             <span class="nav-text">Resumen</span>
           </li>
         </RouterLink>
+
         <li class="nav-item">
           <i class="pi pi-chart-bar"></i>
           <span class="nav-text">Reportes</span>
@@ -33,7 +36,8 @@ const toggleSidebar = inject<() => void>('toggleSidebar');
           <i class="pi pi-cog"></i>
           <span class="nav-text">Configuración</span>
         </li>
-        <RouterLink to="/users" custom v-slot="{ navigate, isActive }">
+
+        <RouterLink v-if="authStore.user?.role === 'admin'" to="/users" custom v-slot="{ navigate, isActive }">
           <li class="nav-item" :class="{ active: isActive }" @click="navigate">
             <i class="pi pi-users"></i>
             <span class="nav-text">Gestión de Usuarios</span>
