@@ -11,22 +11,27 @@ const router = createRouter({
     },
     {
       path: '/',
-      component: () => import('../views/DashboardLayout.vue'), // El componente padre
+      component: () => import('../views/DashboardLayout.vue'),
       meta: { requiresAuth: true },
-      children: [ // <-- Rutas que se renderizan dentro de DashboardLayout
+      children: [
         {
-          path: '', // La ruta raíz ('/')
+          path: '',
           name: 'DashboardHome',
           component: () => import('../views/DashboardHomeView.vue')
         },
-        // Aquí añadiremos /reportes, /configuracion, etc. en el futuro
+        {
+          path: 'users', // Se accederá en la URL /users
+          name: 'UserManagement',
+          component: () => import('../views/UserManagementView.vue'),
+          meta: { requiresAuth: true } // También la protegemos
+        }
       ]
     },
     { path: '/:catchAll(.*)', redirect: '/' }
   ]
 })
 
-// ...el guardia de navegación (beforeEach) se mantiene igual...
+// ... el guardia de navegación (beforeEach) se mantiene igual ...
 router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('userToken');
   if (to.meta.requiresAuth && !isAuthenticated) {

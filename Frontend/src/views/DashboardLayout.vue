@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, provide } from 'vue';
-import { RouterView } from 'vue-router'; // <-- 1. Importar RouterView
+import { RouterView } from 'vue-router'; // <-- Importamos RouterView
 import Sidebar from '@/components/Sidebar.vue';
 import TheHeader from '@/components/TheHeader.vue';
 
@@ -9,11 +9,9 @@ defineOptions({
 });
 
 const isSidebarExpanded = ref(false);
-
 function toggleSidebar() {
   isSidebarExpanded.value = !isSidebarExpanded.value;
 }
-
 provide('isSidebarExpanded', isSidebarExpanded);
 provide('toggleSidebar', toggleSidebar);
 </script>
