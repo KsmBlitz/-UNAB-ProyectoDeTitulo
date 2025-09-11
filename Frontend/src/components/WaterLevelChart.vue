@@ -1,79 +1,75 @@
 <script setup lang="ts">
-import { Line } from 'vue-chartjs'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js'
+import { ref, watch } from 'vue';
+import { Line } from 'vue-chartjs';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+import type { ChartData, ChartOptions } from 'chart.js';
 
 defineOptions({
   name: 'WaterLevelChart'
 });
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
-const chartData = {
-  labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo'],
-  datasets: [
-    {
-      label: 'Nivel Real',
-      borderColor: '#3498db',
-      backgroundColor: 'rgba(52, 152, 219, 0.2)',
-      data: [65, 75, 90, 80, 70],
-      fill: true,
-      tension: 0.4
-    },
-    {
-      label: 'Nivel Esperado',
-      borderColor: '#95a5a6',
-      borderDash: [5, 5],
-      data: [70, 72, 80, 82, 75],
-      fill: false,
-      tension: 0.4
-    }
-  ]
-};
+// 1. Definimos las props que este componente espera recibir desde DashboardHomeView
+const props = defineProps({
+  chartData: {
+    type: Object as () => { labels: string[]; real_level: number[]; expected_level: number[] },
+    required: true
+  }
+});
 
-const chartOptions = {
+// 2. Creamos una variable reactiva local para los datos del gráfico
+const chartDataRef = ref<ChartData<'line'>>({ labels: [], datasets: [] });
+
+// 3. Creamos las opciones del gráfico, incluyendo el tooltip interactivo
+const chartOptions: ChartOptions<'line'> = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: {
-      position: 'top' as const,
-      align: 'end' as const,
+    legend: { position: 'top' as const, align: 'end' as const },
+    tooltip: {
+      mode: 'index',
+      intersect: false,
     }
   },
   scales: {
-    y: {
-      beginAtZero: true
-    }
+    y: { beginAtZero: false }
   }
 };
+
+// 4. Usamos un 'watch' para reaccionar cuando los datos de la prop cambien
+watch(() => props.chartData, (newData) => {
+  if (newData && newData.labels.length > 0) {
+    chartDataRef.value = {
+      labels: newData.labels,
+      datasets: [
+        {
+          label: 'Nivel Real',
+          borderColor: '#3498db',
+          backgroundColor: 'rgba(52, 152, 219, 0.2)',
+          data: newData.real_level,
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Nivel Esperado',
+          borderColor: '#95a5a6',
+          borderDash: [5, 5],
+          data: newData.expected_level,
+          fill: false,
+          tension: 0.4
+        }
+      ]
+    };
+  }
+}, { immediate: true, deep: true }); // 'immediate' para la carga inicial, 'deep' para objetos
 </script>
 
 <template>
   <div class="chart-container">
-    <div class="chart-header">
-      <h3>Nivel de Agua</h3>
-      <i class="pi pi-cog settings-icon"></i>
-    </div>
     <div class="chart-wrapper">
-      <Line :data="chartData" :options="chartOptions" />
+      <Line v-if="chartData.labels.length > 0" :data="chartDataRef" :options="chartOptions" />
+      <p v-else>No hay datos para mostrar en el rango seleccionado.</p>
     </div>
   </div>
 </template>
@@ -82,38 +78,19 @@ const chartOptions = {
 .chart-container {
   background-color: #ffffff;
   border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  min-width: 0;
-
-  /* --- SOLUCIÓN --- */
-  height: 450px; /* Altura fija para la tarjeta */
+  /* El padding y la sombra ahora los maneja la sección en HomeView */
+  height: 450px;
   display: flex;
   flex-direction: column;
 }
-
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.chart-header h3 {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.settings-icon {
-  cursor: pointer;
-  color: #6c757d;
-}
-
 .chart-wrapper {
   position: relative;
-  /* Hacemos que el área del gráfico crezca para ocupar el espacio restante */
   flex-grow: 1;
-  min-height: 0; /* Evita problemas de encogimiento en flexbox */
+  min-height: 0;
+}
+p {
+  text-align: center;
+  color: #6c757d;
+  margin-top: 2rem;
 }
 </style>

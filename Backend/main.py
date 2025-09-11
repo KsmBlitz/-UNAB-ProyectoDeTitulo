@@ -204,51 +204,49 @@ async def get_latest_metrics(current_user: dict = Depends(get_current_user)):
         "electroconductividad": {"value": latest_reading.get("EC", 0), "unit": "dS/m", "changeText": "Conductividad", "isPositive": True},
     }
 
+# En backend/main.py, reemplaza la función get_water_level_data
+
 @app.get("/api/charts/water-level", tags=["Datos de Sensores"])
 async def get_water_level_data(
     current_user: dict = Depends(get_current_user),
-    start_date: Optional[datetime] = None, # Nuevo parámetro: fecha de inicio
-    end_date: Optional[datetime] = None,   # Nuevo parámetro: fecha de fin
-    limit: int = 30 # Por si queremos limitar el número de puntos
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    limit: Optional[int] = None
 ):
+    """
+    Obtiene registros para el gráfico de nivel de agua.
+    Puede filtrar por un rango de fechas o devolver los últimos 'limit' registros.
+    """
     query = {}
-    if start_date:
-        query["ReadTime"] = {"$gte": start_date}
-    if end_date:
-        if "ReadTime" in query:
-            query["ReadTime"]["$lte"] = end_date
-        else:
-            query["ReadTime"] = {"$lte": end_date}
-            
-    # Siempre ordenar por ReadTime ascendente para el gráfico
-    cursor = sensor_collection.find(query).sort("ReadTime", 1) 
+    if start_date and end_date:
+        query["ReadTime"] = {"$gte": start_date, "$lte": end_date}
     
-    # Si hay un límite y no estamos filtrando por rango de fecha, aplicarlo
-    # Si tenemos un rango de fecha, queremos todos los datos de ese rango
-    if not start_date and not end_date:
+    sort_order = [("ReadTime", 1)] if start_date else [("ReadTime", -1)]
+
+    cursor = sensor_collection.find(query).sort(sort_order)
+
+    if limit and not start_date:
         cursor = cursor.limit(limit)
 
-    readings = await cursor.to_list(length=None) # Obtenemos todos los resultados de la consulta
+    readings = await cursor.to_list(length=1000)
     
-    if not readings:
-        raise HTTPException(status_code=404, detail="No hay datos disponibles para el rango seleccionado")
+    if not start_date and readings:
+        readings.reverse()
 
-    # Determinar el formato de la etiqueta basado en el rango de fechas
-    # Si el rango es de un día o menos, mostrar fecha y hora
-    # Si es más largo, solo mostrar fecha
-    
-    # Calcular el rango real de los datos obtenidos
+    if not readings:
+        raise HTTPException(status_code=404, detail="No hay datos para el rango seleccionado")
+
     first_time = readings[0]["ReadTime"]
     last_time = readings[-1]["ReadTime"]
-    data_range = last_time - first_time
+    data_range_seconds = (last_time - first_time).total_seconds()
 
-    if data_range < timedelta(days=2): # Menos de 48 horas, mostrar fecha y hora
-        time_format = "%d-%m %H:%M" # Día-Mes Hora:Minuto
-    else: # Más de un día, solo mostrar fecha
-        time_format = "%d-%m" # Día-Mes
+    time_format = "%d-%b %H:%M" if data_range_seconds <= (24 * 3600 * 2) else "%d-%b-%Y"
 
+    # *** IMPORTANTE: AJUSTA ESTE CAMPO ***
+    water_level_field = "Potassium"
+    
     return {
         "labels": [r["ReadTime"].strftime(time_format) for r in readings],
-        "real_level": [r.get("Potassium", 0) for r in readings], # Asumiendo Potassium como "nivel de agua"
-        "expected_level": [r.get("Potassium", 0) + 5 for r in readings] # Nivel esperado
+        "real_level": [r.get(water_level_field, 0) for r in readings],
+        "expected_level": [r.get(water_level_field, 0) + 5 for r in readings]
     }
