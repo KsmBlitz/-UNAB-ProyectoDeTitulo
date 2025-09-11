@@ -151,7 +151,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     user = await users_collection.find_one({"email": form_data.username})
     if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Correo o contraseña incorrectos")
-    access_token = create_access_token(data={"sub": user["email"], "role": user.get("role")})
+    access_token = create_access_token(
+        data={"sub": user["email"], "role": user.get("role"), "full_name": user.get("full_name")}
+    )
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/api/users", response_model=List[UserPublic], tags=["Usuarios"])
@@ -202,14 +204,49 @@ async def get_latest_metrics(current_user: dict = Depends(get_current_user)):
         "electroconductividad": {"value": latest_reading.get("EC", 0), "unit": "dS/m", "changeText": "Conductividad", "isPositive": True},
     }
 
+# En backend/main.py, reemplaza la función get_water_level_data
+
 @app.get("/api/charts/water-level", tags=["Datos de Sensores"])
-async def get_water_level_data(current_user: dict = Depends(get_current_user)):
-    cursor = sensor_collection.find({}, sort=[("ReadTime", -1)]).limit(30)
-    readings = await cursor.to_list(length=30)
-    readings.reverse()
-    if not readings: raise HTTPException(status_code=404, detail="No hay suficientes datos para el gráfico")
+async def get_water_level_data(
+    current_user: dict = Depends(get_current_user),
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    limit: Optional[int] = None
+):
+    """
+    Obtiene registros para el gráfico de nivel de agua.
+    Puede filtrar por un rango de fechas o devolver los últimos 'limit' registros.
+    """
+    query = {}
+    if start_date and end_date:
+        query["ReadTime"] = {"$gte": start_date, "$lte": end_date}
+    
+    sort_order = [("ReadTime", 1)] if start_date else [("ReadTime", -1)]
+
+    cursor = sensor_collection.find(query).sort(sort_order)
+
+    if limit and not start_date:
+        cursor = cursor.limit(limit)
+
+    readings = await cursor.to_list(length=1000)
+    
+    if not start_date and readings:
+        readings.reverse()
+
+    if not readings:
+        raise HTTPException(status_code=404, detail="No hay datos para el rango seleccionado")
+
+    first_time = readings[0]["ReadTime"]
+    last_time = readings[-1]["ReadTime"]
+    data_range_seconds = (last_time - first_time).total_seconds()
+
+    time_format = "%d-%b %H:%M" if data_range_seconds <= (24 * 3600 * 2) else "%d-%b-%Y"
+
+    # *** IMPORTANTE: AJUSTA ESTE CAMPO ***
+    water_level_field = "Potassium"
+    
     return {
-        "labels": [r["ReadTime"].strftime("%d-%b") for r in readings],
-        "real_level": [r.get("Potassium", 0) for r in readings],
-        "expected_level": [r.get("Potassium", 0) + 5 for r in readings]
+        "labels": [r["ReadTime"].strftime(time_format) for r in readings],
+        "real_level": [r.get(water_level_field, 0) for r in readings],
+        "expected_level": [r.get(water_level_field, 0) + 5 for r in readings]
     }

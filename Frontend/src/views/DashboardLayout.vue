@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, provide } from 'vue';
-import { RouterView } from 'vue-router'; // <-- Importamos RouterView
+import { ref } from 'vue';
+import { RouterView } from 'vue-router';
 import Sidebar from '@/components/Sidebar.vue';
 import TheHeader from '@/components/TheHeader.vue';
 
@@ -8,26 +8,58 @@ defineOptions({
   name: 'DashboardLayout'
 });
 
-const isSidebarExpanded = ref(false);
-function toggleSidebar() {
-  isSidebarExpanded.value = !isSidebarExpanded.value;
-}
-provide('isSidebarExpanded', isSidebarExpanded);
-provide('toggleSidebar', toggleSidebar);
+const isSidebarCollapsed = ref(false);
+const toggleSidebar = () => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value;
+};
 </script>
 
 <template>
-  <div class="layout-wrapper">
-    <Sidebar />
-    <main class="main-content" :class="{ 'sidebar-expanded': isSidebarExpanded }">
+  <div class="dashboard-layout">
+    <Sidebar :is-collapsed="isSidebarCollapsed" @toggle-sidebar="toggleSidebar" />
+
+    <div class="main-content-wrapper">
       <TheHeader />
-      <div class="content-wrapper">
+      <main class="dashboard-main">
         <RouterView />
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.layout-wrapper{display:flex;background-color:#f4f6f9}.main-content{flex-grow:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;margin-left:80px;transition:margin-left .3s ease-in-out}.main-content.sidebar-expanded{margin-left:250px}.content-wrapper{flex-grow:1;overflow-y:auto;padding:2rem}
+:root {
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 88px;
+  --header-height: 80px; /* Aumentamos la altura para más espacio */
+}
+
+.dashboard-layout {
+  display: flex;
+}
+
+.main-content-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden; /* Evita el doble scroll en la ventana */
+}
+
+.app-header {
+  height: var(--header-height);
+  padding: 0 2.5rem; /* Aumentamos el padding para más espacio */
+  background-color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+  z-index: 1000;
+}
+
+.dashboard-main {
+  flex-grow: 1;
+  overflow-y: auto; /* El scroll solo aplicará a esta área */
+}
 </style>

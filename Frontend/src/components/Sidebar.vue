@@ -1,54 +1,169 @@
 <script setup lang="ts">
-import { inject } from 'vue'
-import type { Ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import { authStore } from '@/auth/store'; // <-- Importar nuestro store
+import { RouterLink } from 'vue-router';
+import { authStore } from '@/auth/store';
 
 defineOptions({
   name: 'AppSidebar'
 });
 
-const isSidebarExpanded = inject<Ref<boolean>>('isSidebarExpanded');
-const toggleSidebar = inject<() => void>('toggleSidebar');
+defineProps<{
+  isCollapsed: boolean
+}>();
+const emit = defineEmits(['toggle-sidebar']);
 </script>
 
 <template>
-  <aside class="sidebar" :class="{ collapsed: !isSidebarExpanded }">
-    <header class="sidebar-header">
-      <i class="pi pi-bars menu-toggle" @click="toggleSidebar"></i>
-      <span class="logo-text">Embalses IoT</span>
-    </header>
-
-    <nav class="navigation">
-      <ul>
-        <RouterLink to="/" custom v-slot="{ navigate, isActive }">
-          <li class="nav-item" :class="{ active: isActive }" @click="navigate">
-            <i class="pi pi-home"></i>
-            <span class="nav-text">Resumen</span>
-          </li>
+  <aside class="sidebar" :class="{ collapsed: isCollapsed }">
+    <div class="sidebar-content">
+      <div class="sidebar-header">
+        <i class="pi pi-shield logo-icon"></i>
+        <h2 v-if="!isCollapsed" class="app-title">Embalse IoT</h2>
+      </div>
+      <nav class="navigation">
+        <RouterLink to="/" class="nav-item">
+          <i class="pi pi-th-large"></i>
+          <span v-if="!isCollapsed">Dashboard</span>
         </RouterLink>
-
-        <li class="nav-item">
-          <i class="pi pi-chart-bar"></i>
-          <span class="nav-text">Reportes</span>
-        </li>
-        <li class="nav-item">
-          <i class="pi pi-cog"></i>
-          <span class="nav-text">Configuración</span>
-        </li>
-
-        <RouterLink v-if="authStore.user?.role === 'admin'" to="/users" custom v-slot="{ navigate, isActive }">
-          <li class="nav-item" :class="{ active: isActive }" @click="navigate">
-            <i class="pi pi-users"></i>
-            <span class="nav-text">Gestión de Usuarios</span>
-          </li>
+        <RouterLink to="/users" class="nav-item" v-if="authStore.user?.role === 'admin'">
+          <i class="pi pi-users"></i>
+          <span v-if="!isCollapsed">Usuarios</span>
         </RouterLink>
-      </ul>
-    </nav>
+      </nav>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="toggle-btn" @click="emit('toggle-sidebar')" title="Colapsar/Expandir Menú">
+        <i class="pi" :class="isCollapsed ? 'pi-align-right' : 'pi-align-left'"></i>
+      </button>
+    </div>
   </aside>
 </template>
 
 <style scoped>
-/* El estilo se mantiene igual que antes */
-.sidebar{position:fixed;top:0;left:0;height:100vh;background-color:#2c3e50;color:#ecf0f1;display:flex;flex-direction:column;width:250px;transition:width .3s ease-in-out;overflow-x:hidden;z-index:999}.sidebar.collapsed{width:80px}.sidebar-header{display:flex;align-items:center;gap:1rem;font-size:1.5rem;font-weight:700;padding:0 25px;height:70px;flex-shrink:0}.menu-toggle{font-size:1.5rem;cursor:pointer}.navigation{padding:0 15px}.navigation ul{list-style:none;padding:0;margin:0}.nav-item{display:flex;align-items:center;padding:15px;margin-bottom:5px;border-radius:8px;cursor:pointer;transition:background-color .2s;height:56px}.sidebar.collapsed .nav-item{justify-content:center;padding:15px 0}.nav-item i{font-size:1.5rem;min-width:50px;text-align:center;transition:min-width .3s ease-in-out}.sidebar.collapsed .nav-item i{min-width:auto}.nav-item:hover{background-color:#34495e}.nav-item.active{background-color:#3498db;font-weight:700}.logo-text,.nav-text{opacity:1;transition:opacity .2s ease-in-out;white-space:nowrap}.sidebar.collapsed .logo-text,.sidebar.collapsed .nav-text{opacity:0;width:0}
+:root {
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 88px;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: #2c3e50;
+  color: #ecf0f1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  transition: width 0.3s ease-in-out;
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.sidebar-content {
+  /* Contenedor para el header y la navegación */
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1.75rem;
+  height: var(--header-height, 80px);
+  flex-shrink: 0;
+  overflow: hidden;
+  border-bottom: 1px solid #4a5568;
+}
+
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding: 0;
+}
+
+.logo-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.app-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.navigation {
+  padding: 1rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.9rem 1rem;
+  color: #a0aec0;
+  text-decoration: none;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.nav-item i {
+  font-size: 1.5rem;
+  margin-right: 1.5rem;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+}
+
+.sidebar.collapsed .nav-item i {
+  margin-right: 0;
+}
+
+.sidebar.collapsed .nav-item span {
+  display: none;
+}
+
+.nav-item:hover {
+  background-color: #34495e;
+  color: #fff;
+}
+
+/* --- CORRECCIÓN PARA EL ENLACE ACTIVO --- */
+/* Vue Router añade esta clase automáticamente al enlace EXACTO */
+.nav-item.router-link-exact-active {
+  background-color: #3498db;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* --- NUEVOS ESTILOS PARA EL BOTÓN EN EL FOOTER --- */
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid #4a5568;
+}
+
+.toggle-btn {
+  width: 100%;
+  background-color: #34495e;
+  border: none;
+  color: #a0aec0;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+  background-color: #4a5568;
+  color: #fff;
+}
 </style>
